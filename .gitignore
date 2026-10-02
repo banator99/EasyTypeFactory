@@ -60,3 +60,4 @@ nunit-*.xml
 /packages/
 riderModule.iml
 /_ReSharper.Caches/
+*.sln.DotSettings.user
