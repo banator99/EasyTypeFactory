@@ -1,6 +1,7 @@
 # EasyTypeFactory
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Target: .NET Standard 2.1](https://img.shields.io/badge/.NET%20Standard-2.1-blue.svg)](https://dotnet.microsoft.com/)
 [![Target: .NET 8.0](https://img.shields.io/badge/.NET-8.0-purple.svg)](https://dotnet.microsoft.com/)
 [![Target: .NET 9.0](https://img.shields.io/badge/.NET-9.0-purple.svg)](https://dotnet.microsoft.com/)
 [![Target: .NET 10.0](https://img.shields.io/badge/.NET-10.0-purple.svg)](https://dotnet.microsoft.com/)
@@ -14,6 +15,7 @@ By providing switch-based runtime member dispatch, automatic constructor synthes
 ## Table of Contents
 
 - [Why EasyTypeFactory?](#why-easytypefactory)
+- [Target Frameworks & Support Policy](#target-frameworks--support-policy)
 - [Projects in this Repository](#projects-in-this-repository)
 - [NuGet Packages](#nuget-packages)
   - [Package Installation](#package-installation)
@@ -52,6 +54,25 @@ EasyTypeFactory delivers practical utility by eliminating this compromise:
 - **Zero-Reflection Access**: Emits jump tables (efficient switch statements) for name-based lookup and indexers rather than relying on slow runtime reflection calls.
 - **Immutable Builder API**: Builders are thread-safe and reusable, allowing base templates to branch into different types safely.
 - **Full Type System Fidelity**: Generated types are real .NET types with interfaces, inheritance, constructors, attributes, and operators.
+
+---
+
+## Target Frameworks & Support Policy
+
+EasyTypeFactory is engineered to maximize performance across modern .NET ecosystems while maintaining practical backward compatibility through standard API contracts.
+
+### Officially Supported .NET Versions
+We officially support the .NET versions that are actively supported by Microsoft (currently **.NET 8.0**, **.NET 9.0**, and **.NET 10.0**).
+
+### Lifecycle and EOL Policy
+When Microsoft drops official support for a specific .NET version, EasyTypeFactory will continue supporting that version for **at least two more months**. After this period, support will be dropped.
+
+### Target Framework Matrix & API Contracts
+
+| Project | Target Frameworks | Officially Supported? | Notes |
+| :--- | :--- | :--- | :--- |
+| **`EasyTypeFactory`** | `netstandard2.1`, `net8.0`, `net9.0`, `net10.0` | **.NET 8, 9, 10** | Includes `netstandard2.1` as an API contract. `netstandard2.0` is not supported due to required reflection and runtime APIs. While `netstandard2.1` allows consumption on other compliant runtimes (such as .NET Core 3.0), we do not officially support framework versions other than those actively supported by .NET. |
+| **`EasyTypeFactory.HyperbeeExpressionCompiler`** | `net8.0`, `net9.0`, `net10.0` | **.NET 8, 9, 10** | Does not target `netstandard2.1` because the underlying dependency `Hyperbee.Expressions.Compiler` only targets .NET 8, 9, and 10. |
 
 ---
 

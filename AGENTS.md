@@ -2,7 +2,7 @@
 
 ## Repository Overview
 
-`EasyTypeFactory` is a high-throughput, fluent dynamic type generation library for .NET 10.0. It synthesizes runtime types using direct CIL emission (`System.Reflection.Emit`) to produce optimized dynamic objects, DTOs, and interface implementations with minimal runtime overhead.
+`EasyTypeFactory` is a high-throughput, fluent dynamic type generation library for .NET (.NET 8.0, 9.0, 10.0, and .NET Standard 2.1). It synthesizes runtime types using direct CIL emission (`System.Reflection.Emit`) to produce optimized dynamic objects, DTOs, and interface implementations with minimal runtime overhead.
 
 The repository consists of four primary projects:
 - **`EasyTypeFactory`**: The core library containing fluent builder abstractions, immutable configuration models, and MSIL emitters.
@@ -46,9 +46,12 @@ EasyTypeFactory/
 2. **Switch-Based Fast-Path Member Dispatch**:
    - Dynamic member lookups (`GetByName`, `SetByName`, `this[string]`) do not use runtime reflection.
    - Emitters generate IL switch jump tables matching property/field names (with support for case-sensitive and case-insensitive string comparisons) directly against backing fields.
-3. **Target Framework Compatibility**:
-   - The solution targets `net10.0` with C# 14 / modern language features (including field/parameter reflection enhancements and extension types).
-   - Ensure new language constructs remain compatible with the configured target framework and SDK.
+3. **Target Framework Compatibility & Support Policy**:
+   - **Supported .NET Versions**: Officially supports active .NET versions supported by Microsoft (currently .NET 8, 9, and 10).
+   - **Lifecycle & EOL Policy**: When Microsoft drops official support for a specific .NET version, support will continue for at least two additional months before being dropped.
+   - **.NET Standard 2.1 Contract**: The core `EasyTypeFactory` library targets `netstandard2.1` as an API contract (`netstandard2.0` is not supported due to required reflection and runtime APIs). Although `netstandard2.1` is included as an API contract, runtimes outside Microsoft's official .NET support lifecycle (e.g., .NET Core 3.0) can consume the library but are not officially supported.
+   - **Hyperbee Extension**: `EasyTypeFactory.HyperbeeExpressionCompiler` targets `net8.0`, `net9.0`, and `net10.0` (it does not target `netstandard2.1` because `Hyperbee.Expressions.Compiler` only targets .NET 8, 9, and 10).
+   - Ensure new language constructs remain compatible with configured target frameworks and SDKs.
 
 ---
 
