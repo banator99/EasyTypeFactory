@@ -51,7 +51,11 @@ internal sealed class ConstructorEmitter : IEmitter
 
         foreach (var (finalModelField, fieldBuilder) in _fields)
         {
+#if NET10_0_OR_GREATER
             var argumentIndex = _constructor.Fields.IndexOf(finalModelField);
+#else
+            var argumentIndex = Array.IndexOf(_constructor.Fields, finalModelField);
+#endif
 
             if (argumentIndex >= 0)
             {

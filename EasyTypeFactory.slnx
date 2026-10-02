@@ -1,5 +1,7 @@
 <Solution>
   <Project Path="EasyTypeFactory.HyperbeeExpressionCompiler/EasyTypeFactory.HyperbeeExpressionCompiler.csproj" />
+  <Project Path="EasyTypeFactory.HyperbeeExpressionCompiler.IntegrationTests/EasyTypeFactory.HyperbeeExpressionCompiler.IntegrationTests.csproj" />
+  <Project Path="EasyTypeFactory.HyperbeeExpressionCompiler.UnitTests/EasyTypeFactory.HyperbeeExpressionCompiler.UnitTests.csproj" />
   <Project Path="EasyTypeFactory/EasyTypeFactory.csproj" />
   <Project Path="EasyTypeFactory.IntegrationTests/EasyTypeFactory.IntegrationTests.csproj" />
   <Project Path="EasyTypeFactory.UnitTests/EasyTypeFactory.UnitTests.csproj" />

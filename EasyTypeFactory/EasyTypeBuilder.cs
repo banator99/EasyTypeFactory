@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Reflection.Emit;
+using System.Runtime.CompilerServices;
 using EasyTypeFactory.Definition;
 using EasyTypeFactory.Emission;
 using EasyTypeFactory.Model;
@@ -476,6 +477,12 @@ public sealed class EasyTypeBuilder : IEasyTypeBuilder
 
     public Type Build()
     {
+        if (!RuntimeFeature.IsDynamicCodeSupported)
+        {
+            throw new PlatformNotSupportedException(
+                "This library requires dynamic code generation.");
+        }
+        
         var finalModel = ModelBuilder.Create(_modelDefinition);
         var moduleBuilder = _modelDefinition.ModuleBuilder ?? Shared.ModuleBuilder;
         var factory = new ModelEmitter(finalModel, moduleBuilder);

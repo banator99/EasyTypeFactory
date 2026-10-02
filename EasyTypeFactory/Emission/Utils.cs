@@ -18,19 +18,28 @@ internal static class Utils
         typeof(SetsRequiredMembersAttribute).GetConstructor(Type.EmptyTypes)!;
 
     private static readonly MethodInfo StringEqualsStringMethod =
-        typeof(string).GetMethod("Equals", BindingFlags.Public | BindingFlags.Instance, [typeof(string)])!;
+        typeof(string).GetMethod(
+            "Equals", 
+            BindingFlags.Public | BindingFlags.Instance, 
+            binder: null,
+            [typeof(string)],
+            modifiers: null)!;
     
     private static readonly MethodInfo StringEqualsStringStringComparisonMethod =
         typeof(string).GetMethod(
             "Equals", 
             BindingFlags.Public | BindingFlags.Instance,
-            [typeof(string), typeof(StringComparison)])!;
+            binder: null,
+            [typeof(string), typeof(StringComparison)],
+            modifiers: null)!;
     
     public static readonly MethodInfo StringConcat3Method =
         typeof(string).GetMethod(
             "Concat", 
-            BindingFlags.Public | BindingFlags.Static, 
-            [typeof(string), typeof(string), typeof(string)])!;
+            BindingFlags.Public | BindingFlags.Static,
+            binder: null,
+            [typeof(string), typeof(string), typeof(string)],
+            modifiers: null)!;
     
     private static readonly ConstructorInfo KeyNotFoundExceptionCtor =
         typeof(KeyNotFoundException).GetConstructor([typeof(string)])!;
@@ -42,13 +51,25 @@ internal static class Utils
         typeof(Type).GetMethod(
             "GetTypeFromHandle", 
             BindingFlags.Public | BindingFlags.Static,
-            [typeof(RuntimeTypeHandle)])!;
+            binder: null,
+            [typeof(RuntimeTypeHandle)],
+            modifiers: null)!;
     
     private static readonly MethodInfo TypeOpEqualityMethod =
-        typeof(Type).GetMethod("op_Equality", BindingFlags.Public | BindingFlags.Static, [typeof(Type), typeof(Type)])!;
+        typeof(Type).GetMethod(
+            "op_Equality",
+            BindingFlags.Public | BindingFlags.Static,
+            binder: null,
+            [typeof(Type), typeof(Type)],
+            modifiers: null)!;
     
     public static readonly MethodInfo TypeIsAssignableFromMethod =
-        typeof(Type).GetMethod("IsAssignableFrom", BindingFlags.Public | BindingFlags.Instance, [typeof(Type)])!;
+        typeof(Type).GetMethod(
+            "IsAssignableFrom", 
+            BindingFlags.Public | BindingFlags.Instance, 
+            binder: null,
+            [typeof(Type)],
+            modifiers: null)!;
 
     public static readonly MethodInfo HashCodeGenericAddMethod = typeof(HashCode)
         .GetMethods()

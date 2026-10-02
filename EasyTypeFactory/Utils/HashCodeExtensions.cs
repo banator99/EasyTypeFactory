@@ -5,34 +5,31 @@ namespace EasyTypeFactory.Utils;
 
 internal static class HashCodeExtensions
 {
-    extension(ref HashCode hashCode)
+    public static void AddCollection<T>(this ref HashCode hashCode, IReadOnlyCollection<T>? items)
     {
-        public void AddCollection<T>(IReadOnlyCollection<T>? items)
+        if (items is null)
         {
-            if (items is null)
-            {
-                return;
-            }
-    
-            foreach (var item in items)
-            {
-                hashCode.Add(item);
-            }
+            return;
         }
 
-        public void AddDictionary<TKey, TValue>(IReadOnlyDictionary<TKey, TValue>? items)
-            where TKey : notnull
+        foreach (var item in items)
         {
-            if (items is null)
-            {
-                return;
-            }
-    
-            foreach (var (key, value) in items)
-            {
-                hashCode.Add(key);
-                hashCode.Add(value);
-            }
+            hashCode.Add(item);
+        }
+    }
+
+    public static void AddDictionary<TKey, TValue>(this ref HashCode hashCode, IReadOnlyDictionary<TKey, TValue>? items)
+        where TKey : notnull
+    {
+        if (items is null)
+        {
+            return;
+        }
+
+        foreach (var (key, value) in items)
+        {
+            hashCode.Add(key);
+            hashCode.Add(value);
         }
     }
 }
