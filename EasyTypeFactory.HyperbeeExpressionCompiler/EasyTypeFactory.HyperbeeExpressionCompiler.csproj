@@ -14,6 +14,12 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <None Include="..\icon.png"
+              Pack="true"
+              PackagePath="icon.png" />
+    </ItemGroup>
+    
+    <ItemGroup>
       <ProjectReference Include="..\EasyTypeFactory\EasyTypeFactory.csproj" />
     </ItemGroup>
 

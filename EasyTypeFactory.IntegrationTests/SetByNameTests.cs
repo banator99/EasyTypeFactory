@@ -134,6 +134,51 @@ public class SetByNameTests
         Assert.IsType<KeyNotFoundException>(ex.InnerException);
     }
 
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void GenericSetByName_ReadOnlyFields_ThrowWithoutChangingValues(bool caseInsensitive, bool useObject)
+    {
+        var builder = EasyTypeBuilder.Create()
+            .AddField("Id", typeof(int), isReadOnly: true)
+            .AddField("Tag", typeof(string), isReadOnly: true)
+            .AddField("Count", typeof(int))
+            .WithFullConstructor()
+            .WithGenericSetByName();
+        if (caseInsensitive)
+        {
+            builder = builder.CaseInsensitive();
+        }
+
+        var type = builder.Build();
+        var ctor = type.GetConstructors().Single(c => c.GetParameters().Length == 3);
+        var values = new Dictionary<string, object> { ["Id"] = 100, ["Tag"] = "Initial", ["Count"] = 0 };
+        var instance = ctor.Invoke(ctor.GetParameters().Select(p => values[p.Name!]).ToArray());
+        var genericSet = type.GetMethod("SetByName", 1, [typeof(string), Type.MakeGenericMethodParameter(0)])!;
+
+        foreach (var name in new[] { "Id", "Tag" })
+        {
+            var field = type.GetField(name)!;
+            var setMethod = genericSet.MakeGenericMethod(useObject ? typeof(object) : field.FieldType);
+            var lookupName = caseInsensitive ? name.ToLowerInvariant() : name;
+            object replacement = name == "Id" ? 999 : "Updated";
+
+            var ex = Assert.Throws<TargetInvocationException>(() => setMethod.Invoke(instance, [lookupName, replacement]));
+            var inner = Assert.IsType<InvalidOperationException>(ex.InnerException);
+            Assert.Equal($"Cannot set field '{name}' because it's read-only.", inner.Message);
+            Assert.Equal(values[name], field.GetValue(instance));
+        }
+
+        var setInt = genericSet.MakeGenericMethod(typeof(int));
+        setInt.Invoke(instance, [caseInsensitive ? "count" : "Count", 42]);
+        Assert.Equal(42, type.GetField("Count")!.GetValue(instance));
+
+        var missing = Assert.Throws<TargetInvocationException>(() => setInt.Invoke(instance, ["Missing", 1]));
+        Assert.IsType<KeyNotFoundException>(missing.InnerException);
+    }
+
     [Fact]
     public void AddSetTypeByName_GeneratesTypedSetters()
     {

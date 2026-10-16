@@ -13,9 +13,8 @@ namespace EasyTypeFactory.Emission;
 
 internal sealed class ModelEmitter
 {
-    // private static readonly ConcurrentDictionary<ModuleBuilder, ConcurrentDictionary<string, uint>> Discriminators = new();
-    // private static readonly ConcurrentDictionary<ModuleBuilder, ConcurrentBag<string>> DefinedTypeNames = new();
-
+    // We use ConditionalWeakTable because we should not add strong references to the ModuleBuilder as they could be
+    // collectible. The ConditionalWeakTable is thread-safe.
     private static readonly ConditionalWeakTable<ModuleBuilder, ModuleState> ModuleStates = [];
     
     private readonly Model.Model _model;
