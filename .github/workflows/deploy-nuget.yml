@@ -1,55 +1,158 @@
+
 name: Deploy to NuGet
 
 on:
   push:
     tags:
       - 'v[0-9]+.[0-9]+.[0-9]+*'
-      - '[0-9]+.[0-9]+.[0-9]+*'
+
   workflow_dispatch:
     inputs:
       version:
-        description: 'Semantic version to publish (e.g. 1.2.3)'
+        description: 'Base version (e.g. 1.3.0)'
         required: true
         type: string
+
+      release_type:
+        description: 'Release type'
+        required: true
+        default: beta
+        type: choice
+        options:
+          - beta
+          - stable
+
+      beta_number:
+        description: 'Beta number (e.g. 1, 2, 3)'
+        required: false
+        default: '1'
+        type: string
+
       skip_tests:
-        description: 'Skip running tests before publishing'
+        description: 'Skip tests before publishing'
         required: false
         default: false
         type: boolean
+
+concurrency:
+  group: nuget-publish
+  cancel-in-progress: false
 
 jobs:
   publish:
     name: Build, Pack and Publish to NuGet
     runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    environment: nuget-production
+
+    permissions:
+      contents: write
+      id-token: write
 
     steps:
+      # ----------------------------------------
+      # Checkout
+      # ----------------------------------------
+
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # ----------------------------------------
+      # Resolve version and tag
+      # ----------------------------------------
 
       - name: Resolve Semantic Version
         id: version_step
         shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_VERSION: ${{ inputs.version }}
+          RELEASE_TYPE: ${{ inputs.release_type }}
+          BETA_NUMBER: ${{ inputs.beta_number }}
+          REF_NAME: ${{ github.ref_name }}
         run: |
-          RAW_VERSION="${{ github.event.inputs.version }}"
-          if [ -z "$RAW_VERSION" ]; then
-            RAW_VERSION="${{ github.ref_name }}"
+          BASE_REGEX='^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'
+          VERSION_REGEX='^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-beta\.[1-9][0-9]*)?$'
+
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            BASE_VERSION="$INPUT_VERSION"
+
+            if [[ ! "$BASE_VERSION" =~ $BASE_REGEX ]]; then
+              echo "::error::Invalid base version: $BASE_VERSION"
+              exit 1
+            fi
+
+            if [[ "$RELEASE_TYPE" == "beta" ]]; then
+              if [[ ! "$BETA_NUMBER" =~ ^[1-9][0-9]*$ ]]; then
+                echo "::error::Invalid beta number"
+                exit 1
+              fi
+
+              VERSION="$BASE_VERSION-beta.$BETA_NUMBER"
+            else
+              VERSION="$BASE_VERSION"
+            fi
+
+            TAG="v$VERSION"
+          else
+            TAG="$REF_NAME"
+            VERSION="${TAG#v}"
           fi
 
-          # Strip leading 'v' or 'V' if present to enforce default 1.2.3 semantic format
-          CLEAN_VERSION="${RAW_VERSION#v}"
-          CLEAN_VERSION="${CLEAN_VERSION#V}"
-
-          # Validate version matches standard semantic versioning format (e.g. 1.2.3 or 1.2.3-preview.1)
-          SEMVER_REGEX="^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$"
-          if [[ ! "$CLEAN_VERSION" =~ $SEMVER_REGEX ]]; then
-            echo "::error::Provided version '$CLEAN_VERSION' does not match semantic versioning format (e.g. 1.2.3)."
+          if [[ ! "$VERSION" =~ $VERSION_REGEX ]]; then
+            echo "::error::Invalid version: $VERSION"
             exit 1
           fi
 
-          echo "Target Version: $CLEAN_VERSION"
-          echo "version=$CLEAN_VERSION" >> "$GITHUB_OUTPUT"
+          if [[ "$TAG" != "v$VERSION" ]]; then
+            echo "::error::Tag must start with v"
+            exit 1
+          fi
 
-      - name: Setup .NET SDKs (8.0, 9.0, 10.0)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+          if [[ "$VERSION" == *-* ]]; then
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          echo "Version: $VERSION"
+          echo "Tag: $TAG"
+
+      # ----------------------------------------
+      # Check for existing release
+      # ----------------------------------------
+
+      - name: Check release tag
+        shell: bash
+        env:
+          TAG: ${{ steps.version_step.outputs.tag }}
+          EVENT_NAME: ${{ github.event_name }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "::error::Release $TAG already exists"
+            exit 1
+          fi
+
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            if git ls-remote --exit-code --refs --tags \
+              origin "refs/tags/$TAG" >/dev/null; then
+              echo "::error::Tag $TAG already exists"
+              exit 1
+            fi
+          fi
+
+      # ----------------------------------------
+      # Setup .NET SDKs
+      # ----------------------------------------
+
+      - name: Setup .NET SDKs
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: |
@@ -57,29 +160,178 @@ jobs:
             9.0.x
             10.0.x
 
+      - name: Display .NET Environment Info
+        run: dotnet --info
+
+      # ----------------------------------------
+      # Restore and build
+      # ----------------------------------------
+
       - name: Restore dependencies
         run: dotnet restore
 
       - name: Build solution
-        run: dotnet build --no-restore --configuration Release
+        env:
+          VERSION: ${{ steps.version_step.outputs.version }}
+        run: >
+          dotnet build
+          --no-restore
+          --configuration Release
+          -p:Version=$VERSION
 
-      - name: Run all tests
-        if: ${{ github.event.inputs.skip_tests != 'true' }}
-        run: dotnet test --no-build --configuration Release --verbosity normal
+      # ----------------------------------------
+      # Run tests
+      # ----------------------------------------
+
+      - name: Run .NET 8 tests
+        if: ${{ !inputs.skip_tests }}
+        timeout-minutes: 10
+        run: >
+          dotnet test
+          --no-build
+          --configuration Release
+          --framework net8.0
+          --verbosity normal
+
+      - name: Run .NET 9 tests
+        if: ${{ !inputs.skip_tests }}
+        timeout-minutes: 10
+        run: >
+          dotnet test
+          --no-build
+          --configuration Release
+          --framework net9.0
+          --verbosity normal
+
+      - name: Run .NET 10 tests
+        if: ${{ !inputs.skip_tests }}
+        timeout-minutes: 10
+        run: >
+          dotnet test
+          --no-build
+          --configuration Release
+          --framework net10.0
+          --verbosity normal
+
+      # ----------------------------------------
+      # Pack packages
+      # ----------------------------------------
 
       - name: Pack NuGet Packages
+        shell: bash
+        env:
+          VERSION: ${{ steps.version_step.outputs.version }}
         run: |
-          dotnet pack EasyTypeFactory/EasyTypeFactory.csproj --configuration Release --no-build -p:PackageVersion=${{ steps.version_step.outputs.version }} -p:Version=${{ steps.version_step.outputs.version }} --output ./nupkg
-          dotnet pack EasyTypeFactory.HyperbeeExpressionCompiler/EasyTypeFactory.HyperbeeExpressionCompiler.csproj --configuration Release --no-build -p:PackageVersion=${{ steps.version_step.outputs.version }} -p:Version=${{ steps.version_step.outputs.version }} --output ./nupkg
+          mkdir -p ./nupkg
+
+          dotnet pack \
+            EasyTypeFactory/EasyTypeFactory.csproj \
+            --configuration Release \
+            --no-build \
+            -p:PackageVersion="$VERSION" \
+            -p:Version="$VERSION" \
+            --output ./nupkg
+
+          dotnet pack \
+            EasyTypeFactory.HyperbeeExpressionCompiler/EasyTypeFactory.HyperbeeExpressionCompiler.csproj \
+            --configuration Release \
+            --no-build \
+            -p:PackageVersion="$VERSION" \
+            -p:Version="$VERSION" \
+            --output ./nupkg
+
+      # ----------------------------------------
+      # Upload artifacts
+      # ----------------------------------------
 
       - name: Upload Package Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: nuget-packages-${{ steps.version_step.outputs.version }}
           path: ./nupkg/*.nupkg
+          if-no-files-found: error
+          retention-days: 30
+
+      # ----------------------------------------
+      # Create Git tag for manual releases
+      # ----------------------------------------
+
+      - name: Create release tag
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        shell: bash
+        env:
+          TAG: ${{ steps.version_step.outputs.tag }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git tag -a "$TAG" -m "Release $TAG" "$GITHUB_SHA"
+          git push origin "refs/tags/$TAG"
+
+          echo "Created tag: $TAG"
+
+      # ----------------------------------------
+      # NuGet Trusted Publishing
+      # ----------------------------------------
+
+      - name: Login to NuGet.org (OIDC)
+        id: nuget-login
+        uses: NuGet/login@v1
+        with:
+          user: ${{ vars.NUGET_USER }}
 
       - name: Publish to NuGet.org
+        shell: bash
         env:
-          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+          NUGET_API_KEY: ${{ steps.nuget-login.outputs.NUGET_API_KEY }}
         run: |
-          dotnet nuget push ./nupkg/*.nupkg --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate
+          dotnet nuget push "./nupkg/*.nupkg" \
+            --api-key "$NUGET_API_KEY" \
+            --source https://api.nuget.org/v3/index.json \
+            --skip-duplicate
+
+      # ----------------------------------------
+      # Create GitHub Release
+      # ----------------------------------------
+
+      - name: Create GitHub Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version_step.outputs.tag }}
+          PRERELEASE: ${{ steps.version_step.outputs.prerelease }}
+        run: |
+          RELEASE_ARGS=(
+            --verify-tag
+            --title "$TAG"
+            --generate-notes
+          )
+
+          if [[ "$PRERELEASE" == "true" ]]; then
+            RELEASE_ARGS+=(--prerelease --latest=false)
+          fi
+
+          gh release create "$TAG" ./nupkg/*.nupkg \
+            "${RELEASE_ARGS[@]}"
+
+      # ----------------------------------------
+      # Release summary
+      # ----------------------------------------
+
+      - name: Release Summary
+        if: success()
+        shell: bash
+        env:
+          VERSION: ${{ steps.version_step.outputs.version }}
+          TAG: ${{ steps.version_step.outputs.tag }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          echo "## NuGet Release $VERSION" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Git tag:** $TAG" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "### Published packages" >> "$GITHUB_STEP_SUMMARY"
+          echo "- EasyTypeFactory" >> "$GITHUB_STEP_SUMMARY"
+          echo "- EasyTypeFactory.HyperbeeExpressionCompiler" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "[View GitHub Release](https://github.com/$GH_REPO/releases/tag/$TAG)" >> "$GITHUB_STEP_SUMMARY"
