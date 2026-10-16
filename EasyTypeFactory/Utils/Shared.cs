@@ -12,7 +12,7 @@ internal static class Shared
     
     private const string DefaultModuleName = DefaultNamespace;
     
-    public const string DefaultClassName = "DynamicModel";
+    public const string DefaultClassName = "Anonymous";
     
     public const string DefaultFullName = DefaultNamespace + "." + DefaultClassName;
     

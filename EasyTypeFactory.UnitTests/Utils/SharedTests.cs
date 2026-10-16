@@ -9,8 +9,8 @@ public class SharedTests
     public void Constants_HaveExpectedValues()
     {
         Assert.Equal("EasyTypeFactory.Generated", Shared.DefaultNamespace);
-        Assert.Equal("DynamicModel", Shared.DefaultClassName);
-        Assert.Equal("EasyTypeFactory.Generated.DynamicModel", Shared.DefaultFullName);
+        Assert.Equal("Anonymous", Shared.DefaultClassName);
+        Assert.Equal("EasyTypeFactory.Generated.Anonymous", Shared.DefaultFullName);
     }
 
     [Fact]

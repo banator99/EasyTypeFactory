@@ -11,11 +11,94 @@ namespace EasyTypeFactory.UnitTests.Emission;
 
 public class ModelEmitterTests
 {
+    private static global::EasyTypeFactory.Model.Model CreateEmptyModel(string? name, bool discriminate = true)
+    {
+        return new global::EasyTypeFactory.Model.Model
+        {
+            Name = name,
+            DiscriminateName = discriminate,
+            Fields = [],
+            Properties = [],
+            Indexer = null,
+            Constructors = [new ModelConstructor { Fields = [] }],
+            Interfaces = [],
+            BaseType = typeof(object),
+            Methods = [],
+            Operators = [],
+            CaseInsensitive = false
+        };
+    }
+
     private static ModuleBuilder CreateModuleBuilder()
     {
         var assemblyName = new AssemblyName("TestAssembly_" + Guid.NewGuid().ToString("N"));
         var assemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.Run);
         return assemblyBuilder.DefineDynamicModule(assemblyName.Name!);
+    }
+
+    [Theory]
+    [InlineData("RepeatedType", true)]
+    [InlineData(null, true)]
+    [InlineData(null, false)]
+    public void Create_RepeatedDiscriminatedName_IncrementsDiscriminator(string? name, bool discriminate)
+    {
+        var module = CreateModuleBuilder();
+        var model = CreateEmptyModel(name, discriminate);
+        var fullName = name ?? "EasyTypeFactory.Generated.Anonymous";
+
+        for (var i = 0; i < 3; i++)
+        {
+            var type = new ModelEmitter(model, module).Create();
+            Assert.Equal($"{fullName}<{i}>", type.FullName);
+        }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Create_SameNameInDifferentModules_HasIndependentState(bool discriminate)
+    {
+        var model = CreateEmptyModel("SharedName", discriminate);
+        var first = new ModelEmitter(model, CreateModuleBuilder()).Create();
+        var second = new ModelEmitter(model, CreateModuleBuilder()).Create();
+
+        Assert.Equal(discriminate ? "SharedName<0>" : "SharedName", first.FullName);
+        Assert.Equal(first.FullName, second.FullName);
+        Assert.NotEqual(first, second);
+    }
+
+    [Fact]
+    public void Create_DifferentBaseNames_HaveIndependentDiscriminators()
+    {
+        var module = CreateModuleBuilder();
+
+        Assert.Equal("First<0>", new ModelEmitter(CreateEmptyModel("First"), module).Create().FullName);
+        Assert.Equal("Second<0>", new ModelEmitter(CreateEmptyModel("Second"), module).Create().FullName);
+        Assert.Equal("First<1>", new ModelEmitter(CreateEmptyModel("First"), module).Create().FullName);
+    }
+
+    [Fact]
+    public void Create_DiscriminatedName_SkipsReservedExplicitNames()
+    {
+        var module = CreateModuleBuilder();
+        new ModelEmitter(CreateEmptyModel("Reserved<0>", false), module).Create();
+        new ModelEmitter(CreateEmptyModel("Reserved<1>", false), module).Create();
+        var model = CreateEmptyModel("Reserved");
+
+        Assert.Equal("Reserved<2>", new ModelEmitter(model, module).Create().FullName);
+        Assert.Equal("Reserved<3>", new ModelEmitter(model, module).Create().FullName);
+    }
+
+    [Fact]
+    public void Create_ExplicitNameCollidingWithGeneratedName_ThrowsDuplicateNameException()
+    {
+        var module = CreateModuleBuilder();
+        new ModelEmitter(CreateEmptyModel("Reserved"), module).Create();
+
+        var emitter = new ModelEmitter(CreateEmptyModel("Reserved<0>", false), module);
+        var exception = Assert.Throws<DuplicateNameException>(() => emitter.Create());
+
+        Assert.Equal("There is already a type present with the name: Reserved<0>", exception.Message);
     }
 
     [Fact]
@@ -146,6 +229,6 @@ public class ModelEmitterTests
 
         var emitter = new ModelEmitter(model, moduleBuilder);
         var type = emitter.Create();
-        Assert.StartsWith("EasyTypeFactory.Generated.DynamicModel<", type.FullName!);
+        Assert.StartsWith("EasyTypeFactory.Generated.Anonymous<", type.FullName!);
     }
 }

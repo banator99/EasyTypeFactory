@@ -5,8 +5,20 @@
         <Nullable>enable</Nullable>
         <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
         <LangVersion>latest</LangVersion>
+        <Title>EasyTypeFactory.HyperbeeExpressionCompiler</Title>
+        <Authors>banator99</Authors>
+        <Description>EasyTypeFactory helps you with creating types fluently in .NET.</Description>
+        <PackageIcon>icon.png</PackageIcon>
+        <PackageProjectUrl>https://github.com/banator99/EasyTypeFactory</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/banator99/EasyTypeFactory</RepositoryUrl>
     </PropertyGroup>
 
+    <ItemGroup>
+        <None Include="..\icon.png"
+              Pack="true"
+              PackagePath="icon.png" />
+    </ItemGroup>
+    
     <ItemGroup>
       <ProjectReference Include="..\EasyTypeFactory\EasyTypeFactory.csproj" />
     </ItemGroup>

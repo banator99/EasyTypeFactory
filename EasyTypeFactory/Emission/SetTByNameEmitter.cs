@@ -69,8 +69,6 @@ internal sealed class SetTByNameEmitter : IEmitter
     /// </summary>
     public void Emit()
     {
-        // FIXME: handle readonly fields
-        
         var method = _builder.DefineMethod(
             _method.Name,
             MethodAttributes.Public | MethodAttributes.HideBySig);
@@ -101,6 +99,18 @@ internal sealed class SetTByNameEmitter : IEmitter
             nameFalseLabel = il.DefineLabel();
             markNameFalseLabel = true;
             
+            // if (name == "MyField")
+            Utils.EmitStringEquals(il, 1, field.OriginalName, _caseInsensitive);
+            il.Emit(Brfalse_S, nameFalseLabel);
+
+            if (field.ReadOnly)
+            {
+                il.Emit(Ldstr, $"Cannot set field '{field.OriginalName}' because it's read-only.");
+                il.Emit(Newobj, Utils.InvalidOperationExceptionCtor);
+                il.Emit(Throw);
+                continue;
+            }
+
             var typeEqualsFalseLabel = il.DefineLabel();
             var typeIsAssignableFromFalseLabel = il.DefineLabel();
             
@@ -109,10 +119,6 @@ internal sealed class SetTByNameEmitter : IEmitter
                 typedValue = il.DeclareLocal(field.Type);
                 locals.Add(field.Type, typedValue);
             }
-            
-            // if (name == "MyField")
-            Utils.EmitStringEquals(il, 1, field.OriginalName, _caseInsensitive);
-            il.Emit(Brfalse_S, nameFalseLabel);
             
             // if (typeof(T) == typeof(MyField))
             Utils.EmitTypeEqualsT(il, genericT, field.Type);

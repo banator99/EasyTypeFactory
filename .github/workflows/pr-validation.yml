@@ -6,7 +6,14 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
+  # ==========================================
+  # Run tests on all supported platforms
+  # ==========================================
+
   test:
     name: Test (.NET ${{ matrix.dotnet }} on ${{ matrix.os }})
     runs-on: ${{ matrix.os }}
@@ -27,6 +34,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Setup .NET SDKs
         uses: actions/setup-dotnet@v4
@@ -43,7 +52,10 @@ jobs:
         run: dotnet restore
 
       - name: Build solution
-        run: dotnet build --no-restore --configuration Release
+        run: >
+          dotnet build
+          --no-restore
+          --configuration Release
 
       - name: Run .NET ${{ matrix.dotnet }} tests
         timeout-minutes: 12
@@ -53,3 +65,46 @@ jobs:
           --configuration Release
           --framework net${{ matrix.dotnet }}
           --verbosity normal
+
+  # ==========================================
+  # Aggregate all test results
+  # ==========================================
+
+  validation-complete:
+    name: Validation Complete
+    runs-on: ubuntu-latest
+    needs: [test]
+    if: ${{ always() }}
+    timeout-minutes: 5
+
+    steps:
+      - name: Check test results
+        shell: bash
+        env:
+          TEST_RESULT: ${{ needs.test.result }}
+        run: |
+          echo "Test matrix result: $TEST_RESULT"
+
+          if [[ "$TEST_RESULT" != "success" ]]; then
+            echo "::error::One or more test jobs failed, were cancelled, or were skipped."
+            exit 1
+          fi
+
+          echo "All .NET 8, 9 and 10 tests passed on:"
+          echo "- Ubuntu"
+          echo "- Windows"
+          echo "- macOS"
+
+      - name: Write validation summary
+        if: success()
+        shell: bash
+        run: |
+          echo "## PR Validation Successful" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "All 9 test combinations passed." >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Platform | .NET 8 | .NET 9 | .NET 10 |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|---|---|---|---|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Ubuntu | Passed | Passed | Passed |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Windows | Passed | Passed | Passed |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| macOS | Passed | Passed | Passed |" >> "$GITHUB_STEP_SUMMARY"

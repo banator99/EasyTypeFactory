@@ -34,35 +34,43 @@ on:
         default: false
         type: boolean
 
+# Default to read-only access.
+permissions:
+  contents: read
+
 concurrency:
   group: nuget-publish
   cancel-in-progress: false
 
 jobs:
-  publish:
-    name: Build, Pack and Publish to NuGet
+
+  # ==========================================
+  # JOB 1: BUILD, TEST AND PACK
+  # ==========================================
+
+  build:
+    name: Build, Test and Pack
     runs-on: ubuntu-latest
     timeout-minutes: 45
 
-    environment: nuget
-
     permissions:
-      contents: write
-      id-token: write
+      contents: read
+
+    outputs:
+      version: ${{ steps.version_step.outputs.version }}
+      tag: ${{ steps.version_step.outputs.tag }}
+      prerelease: ${{ steps.version_step.outputs.prerelease }}
 
     steps:
-      # ----------------------------------------
-      # Checkout
-      # ----------------------------------------
-
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          persist-credentials: false
 
-      # ----------------------------------------
-      # Resolve version and tag
-      # ----------------------------------------
+      # --------------------------------------
+      # Resolve release version
+      # --------------------------------------
 
       - name: Resolve Semantic Version
         id: version_step
@@ -124,9 +132,9 @@ jobs:
           echo "Version: $VERSION"
           echo "Tag: $TAG"
 
-      # ----------------------------------------
-      # Check for existing release
-      # ----------------------------------------
+      # --------------------------------------
+      # Prevent duplicate releases
+      # --------------------------------------
 
       - name: Check release tag
         shell: bash
@@ -148,9 +156,9 @@ jobs:
             fi
           fi
 
-      # ----------------------------------------
-      # Setup .NET SDKs
-      # ----------------------------------------
+      # --------------------------------------
+      # Setup .NET
+      # --------------------------------------
 
       - name: Setup .NET SDKs
         uses: actions/setup-dotnet@v4
@@ -163,9 +171,9 @@ jobs:
       - name: Display .NET Environment Info
         run: dotnet --info
 
-      # ----------------------------------------
+      # --------------------------------------
       # Restore and build
-      # ----------------------------------------
+      # --------------------------------------
 
       - name: Restore dependencies
         run: dotnet restore
@@ -179,9 +187,9 @@ jobs:
           --configuration Release
           -p:Version=$VERSION
 
-      # ----------------------------------------
+      # --------------------------------------
       # Run tests
-      # ----------------------------------------
+      # --------------------------------------
 
       - name: Run .NET 8 tests
         if: ${{ !inputs.skip_tests }}
@@ -213,9 +221,9 @@ jobs:
           --framework net10.0
           --verbosity normal
 
-      # ----------------------------------------
-      # Pack packages
-      # ----------------------------------------
+      # --------------------------------------
+      # Pack both NuGet packages
+      # --------------------------------------
 
       - name: Pack NuGet Packages
         shell: bash
@@ -240,53 +248,130 @@ jobs:
             -p:Version="$VERSION" \
             --output ./nupkg
 
-      - name: Inspect NuGet package frameworks
+      # --------------------------------------
+      # Verify packages
+      # --------------------------------------
+
+      - name: Verify NuGet Packages
         shell: bash
+        env:
+          VERSION: ${{ steps.version_step.outputs.version }}
         run: |
-          for package in ./nupkg/*.nupkg; do
+          packages=(
+            "./nupkg/EasyTypeFactory.$VERSION.nupkg"
+            "./nupkg/EasyTypeFactory.HyperbeeExpressionCompiler.$VERSION.nupkg"
+          )
+
+          for package in "${packages[@]}"; do
+            if [[ ! -f "$package" ]]; then
+              echo "::error::Missing package: $package"
+              exit 1
+            fi
+
             echo "Package: $package"
             unzip -Z1 "$package" | grep '^lib/'
           done
 
-      # ----------------------------------------
-      # Upload artifacts
-      # ----------------------------------------
+      # --------------------------------------
+      # Upload immutable build artifacts
+      # --------------------------------------
 
-      - name: Upload Package Artifacts
+      - name: Upload NuGet Packages
         uses: actions/upload-artifact@v4
         with:
-          name: nuget-packages-${{ steps.version_step.outputs.version }}
+          name: nuget-packages
           path: ./nupkg/*.nupkg
           if-no-files-found: error
           retention-days: 30
 
-      # ----------------------------------------
+  # ==========================================
+  # JOB 2: PUBLISH
+  # ==========================================
+
+  publish:
+    name: Publish to NuGet and GitHub
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    environment: nuget
+
+    permissions:
+      contents: write
+      id-token: write
+
+    steps:
+      # --------------------------------------
+      # Download tested packages
+      # --------------------------------------
+
+      - name: Download NuGet Packages
+        uses: actions/download-artifact@v4
+        with:
+          name: nuget-packages
+          path: ./nupkg
+
+      - name: Verify downloaded packages
+        shell: bash
+        env:
+          VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          test -f "./nupkg/EasyTypeFactory.$VERSION.nupkg"
+          test -f "./nupkg/EasyTypeFactory.HyperbeeExpressionCompiler.$VERSION.nupkg"
+
+          ls -lh ./nupkg/
+
+      # --------------------------------------
+      # Setup .NET CLI for publishing
+      # --------------------------------------
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      # --------------------------------------
       # Create Git tag for manual releases
-      # ----------------------------------------
+      # --------------------------------------
 
       - name: Create release tag
         if: ${{ github.event_name == 'workflow_dispatch' }}
         shell: bash
         env:
-          TAG: ${{ steps.version_step.outputs.tag }}
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ needs.build.outputs.tag }}
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          TAG_SHA=$(gh api \
+            --method POST \
+            "repos/$GH_REPO/git/tags" \
+            -f tag="$TAG" \
+            -f message="Release $TAG" \
+            -f object="$GITHUB_SHA" \
+            -f type="commit" \
+            --jq '.sha')
 
-          git tag -a "$TAG" -m "Release $TAG" "$GITHUB_SHA"
-          git push origin "refs/tags/$TAG"
+          gh api \
+            --method POST \
+            "repos/$GH_REPO/git/refs" \
+            -f ref="refs/tags/$TAG" \
+            -f sha="$TAG_SHA"
 
           echo "Created tag: $TAG"
 
-      # ----------------------------------------
-      # NuGet Trusted Publishing
-      # ----------------------------------------
+      # --------------------------------------
+      # Authenticate using NuGet OIDC
+      # --------------------------------------
 
-      - name: Login to NuGet.org (OIDC)
+      - name: Login to NuGet.org
         id: nuget-login
         uses: NuGet/login@v1
         with:
           user: ${{ vars.NUGET_USER }}
+
+      # --------------------------------------
+      # Publish packages
+      # --------------------------------------
 
       - name: Publish to NuGet.org
         shell: bash
@@ -295,19 +380,18 @@ jobs:
         run: |
           dotnet nuget push "./nupkg/*.nupkg" \
             --api-key "$NUGET_API_KEY" \
-            --source https://api.nuget.org/v3/index.json \
-            --skip-duplicate
+            --source https://api.nuget.org/v3/index.json
 
-      # ----------------------------------------
+      # --------------------------------------
       # Create GitHub Release
-      # ----------------------------------------
+      # --------------------------------------
 
       - name: Create GitHub Release
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ steps.version_step.outputs.tag }}
-          PRERELEASE: ${{ steps.version_step.outputs.prerelease }}
+          TAG: ${{ needs.build.outputs.tag }}
+          PRERELEASE: ${{ needs.build.outputs.prerelease }}
         run: |
           RELEASE_ARGS=(
             --verify-tag
@@ -322,16 +406,16 @@ jobs:
           gh release create "$TAG" ./nupkg/*.nupkg \
             "${RELEASE_ARGS[@]}"
 
-      # ----------------------------------------
+      # --------------------------------------
       # Release summary
-      # ----------------------------------------
+      # --------------------------------------
 
       - name: Release Summary
         if: success()
         shell: bash
         env:
-          VERSION: ${{ steps.version_step.outputs.version }}
-          TAG: ${{ steps.version_step.outputs.tag }}
+          VERSION: ${{ needs.build.outputs.version }}
+          TAG: ${{ needs.build.outputs.tag }}
           GH_REPO: ${{ github.repository }}
         run: |
           echo "## NuGet Release $VERSION" >> "$GITHUB_STEP_SUMMARY"

@@ -1,12 +1,6 @@
-using System;
-using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Reflection.Emit;
-using EasyTypeFactory;
-using EasyTypeFactory.Definition;
-using EasyTypeFactory.HyperbeeExpressionCompiler;
-using Xunit;
 
 namespace EasyTypeFactory.HyperbeeExpressionCompiler.UnitTests;
 
@@ -157,7 +151,7 @@ public class HyperbeeExpressionCompilerExtensionsTests
         var result = mockBuilder.AddMethodFromExpression(
             "IntToStr",
             mb => mb.WithAttributes(MethodAttributes.Private | MethodAttributes.HideBySig)
-                    .ModifyMethod((m, ctx) => { }),
+                    .ModifyMethod((_, _) => { }),
             expression);
 
         Assert.Same(mockBuilder, result);
@@ -197,6 +191,7 @@ public class HyperbeeExpressionCompilerExtensionsTests
 
         Assert.Equal("GetConstant", def.Name);
         Assert.Equal(typeof(int), def.ReturnType);
+        Assert.NotNull(def.ParameterTypes);
         Assert.Empty(def.ParameterTypes);
         Assert.Equal(MethodAttributes.Public | MethodAttributes.Static, def.Attributes);
         Assert.NotNull(def.Emitter);
@@ -216,6 +211,7 @@ public class HyperbeeExpressionCompilerExtensionsTests
 
         Assert.Equal("DoNothing", def.Name);
         Assert.Equal(typeof(void), def.ReturnType);
+        Assert.NotNull(def.ParameterTypes);
         Assert.Empty(def.ParameterTypes);
         Assert.NotNull(def.Emitter);
     }
@@ -234,6 +230,7 @@ public class HyperbeeExpressionCompilerExtensionsTests
 
         Assert.Equal("GetHello", def.Name);
         Assert.Equal(typeof(string), def.ReturnType);
+        Assert.NotNull(def.ParameterTypes);
         Assert.Empty(def.ParameterTypes);
         Assert.NotNull(def.Emitter);
     }
