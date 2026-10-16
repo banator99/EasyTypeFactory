@@ -146,6 +146,6 @@ public class ModelEmitterTests
 
         var emitter = new ModelEmitter(model, moduleBuilder);
         var type = emitter.Create();
-        Assert.StartsWith("EasyTypeFactory.Generated.DynamicModel<", type.FullName!);
+        Assert.StartsWith("EasyTypeFactory.Generated.Anonymous<", type.FullName!);
     }
 }

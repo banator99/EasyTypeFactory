@@ -5,6 +5,7 @@ using System.Data;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
+using System.Runtime.CompilerServices;
 using EasyTypeFactory.Model;
 using EasyTypeFactory.Utils;
 
@@ -12,9 +13,11 @@ namespace EasyTypeFactory.Emission;
 
 internal sealed class ModelEmitter
 {
-    private static readonly ConcurrentDictionary<ModuleBuilder, ConcurrentDictionary<string, uint>> Discriminators = new();
-    private static readonly ConcurrentDictionary<ModuleBuilder, ConcurrentBag<string>> DefinedTypeNames = new();
+    // private static readonly ConcurrentDictionary<ModuleBuilder, ConcurrentDictionary<string, uint>> Discriminators = new();
+    // private static readonly ConcurrentDictionary<ModuleBuilder, ConcurrentBag<string>> DefinedTypeNames = new();
 
+    private static readonly ConditionalWeakTable<ModuleBuilder, ModuleState> ModuleStates = [];
+    
     private readonly Model.Model _model;
     private readonly ModuleBuilder _moduleBuilder;
     private readonly Dictionary<ModelField, FieldBuilder> _fields = [];
@@ -42,59 +45,42 @@ internal sealed class ModelEmitter
         
         return _typeBuilder.CreateType();
     }
-
+    
     private void CreateTypeBuilder()
     {
-        string? @namespace = null;
-        string name;
-        
-        var fullName = _model.Name;
-        var discriminate = _model.DiscriminateName;
+        var fullName = _model.Name ?? Shared.DefaultFullName;
+        var discriminate = _model.Name is null || _model.DiscriminateName;
 
-        if (fullName is null)
-        {
-            @namespace = Shared.DefaultNamespace;
-            name = Shared.DefaultClassName;
-            fullName = Shared.DefaultFullName;
-            discriminate = true;
-        }
-        else
-        {
-            var index = fullName.LastIndexOf('.');
-
-            if (index >= 0)
-            {
-                @namespace = fullName[..index];
-                name = fullName[(index + 1)..];
-            }
-            else
-            {
-                name = fullName;
-            }
-        }
+        var state = ModuleStates.GetValue(
+            _moduleBuilder,
+            static _ => new ModuleState());
 
         if (discriminate)
         {
-            var basePrefix = @namespace is null ? name : @namespace + '.' + name;
-            var dict = Discriminators.GetOrAdd(_moduleBuilder, _ => new ConcurrentDictionary<string, uint>());
-            var discriminator = dict.AddOrUpdate(basePrefix, 0, (_, current) => current + 1);
-            
-            name = name + '<' + discriminator + '>';
-            
-            fullName = @namespace is null 
-                ? name 
-                : @namespace + '.' + name;
-        }
-        else
-        {
-            var bag = DefinedTypeNames.GetOrAdd(_moduleBuilder, _ => new ConcurrentBag<string>());
-            if (bag.Contains(fullName))
+            while (true)
             {
-                throw new DuplicateNameException("There is already a type present with the name: " + fullName);
+                var discriminator = state.Discriminators.AddOrUpdate(
+                    fullName,
+                    0,
+                    static (_, current) => checked(current + 1));
+
+                var candidate = $"{fullName}<{discriminator}>";
+
+                if (!state.DefinedTypeNames.TryAdd(candidate, 0))
+                {
+                    continue;
+                }
+                
+                fullName = candidate;
+                break;
             }
-            bag.Add(fullName);
         }
- 
+        else if (!state.DefinedTypeNames.TryAdd(fullName, 0))
+        {
+            throw new DuplicateNameException(
+                "There is already a type present with the name: " + fullName);
+        }
+
         _typeBuilder = _moduleBuilder.DefineType(
             fullName,
             TypeAttributes.Public | TypeAttributes.Sealed | TypeAttributes.Class,
@@ -102,9 +88,10 @@ internal sealed class ModelEmitter
 
         foreach (var interfaceType in _model.Interfaces)
         {
-            _typeBuilder.AddInterfaceImplementation(interfaceType == typeof(IEquatable<>)
-                ? interfaceType.MakeGenericType(_typeBuilder)
-                : interfaceType);
+            _typeBuilder.AddInterfaceImplementation(
+                interfaceType == typeof(IEquatable<>)
+                    ? interfaceType.MakeGenericType(_typeBuilder)
+                    : interfaceType);
         }
     }
 
@@ -211,22 +198,34 @@ internal sealed class ModelEmitter
     {
         foreach (var @operator in _model.Operators)
         {
-            if (@operator is ModelEqualityOperator)
+            switch (@operator)
             {
-                var emitter = new OperatorEqualityEmitter(_typeBuilder, _equalsTypeMethod!);
-                emitter.Emit();
-                _opEqualityMethod = emitter.Method;
-            }
-            else if (@operator is ModelInequalityOperator)
-            {
-                var emitter = new OperatorInequalityEmitter(_typeBuilder, _opEqualityMethod!);
-                emitter.Emit();
-            }
-            else
-            {
-                throw new NotSupportedException(
-                    $"Emission for operator '{@operator.GetType().Name}' is not implemented.");
+                case ModelEqualityOperator:
+                {
+                    var emitter = new OperatorEqualityEmitter(_typeBuilder, _equalsTypeMethod!);
+                    emitter.Emit();
+                    _opEqualityMethod = emitter.Method;
+                    break;
+                }
+                
+                case ModelInequalityOperator:
+                {
+                    var emitter = new OperatorInequalityEmitter(_typeBuilder, _opEqualityMethod!);
+                    emitter.Emit();
+                    break;
+                }
+                
+                default:
+                    throw new NotSupportedException(
+                        $"Emission for operator '{@operator.GetType().Name}' is not implemented.");
             }
         }
+    }
+
+    private sealed class ModuleState
+    {
+        public readonly ConcurrentDictionary<string, uint> Discriminators = new();
+
+        public readonly ConcurrentDictionary<string, byte> DefinedTypeNames = new();
     }
 }

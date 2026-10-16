@@ -14,7 +14,7 @@ public class EasyTypeBuilderTests
 
         var type = builder.Build();
         Assert.NotNull(type);
-        Assert.StartsWith("EasyTypeFactory.Generated.DynamicModel", type.FullName!);
+        Assert.StartsWith("EasyTypeFactory.Generated.Anonymous", type.FullName!);
     }
 
     [Fact]
@@ -55,7 +55,7 @@ public class EasyTypeBuilderTests
             .WithoutName();
         var type = builder.Build();
 
-        Assert.StartsWith("EasyTypeFactory.Generated.DynamicModel", type.FullName!);
+        Assert.StartsWith("EasyTypeFactory.Generated.Anonymous", type.FullName!);
     }
 
     [Fact]
