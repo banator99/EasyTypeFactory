@@ -1,24 +1,29 @@
-
 name: PR Validation
 
 on:
-  pull_request:
-    branches: ['**']
   push:
-    branches: [main, master]
+  pull_request:
   workflow_dispatch:
 
 jobs:
   test:
-    name: Test (.NET 8 on Windows)
-    runs-on: windows-latest
-    timeout-minutes: 20
+    name: Test (.NET 8, 9, 10 on ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+          - macos-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup .NET SDKs
+      - name: Setup .NET SDKs (8.0, 9.0, 10.0)
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: |
@@ -36,66 +41,30 @@ jobs:
         run: dotnet build --no-restore --configuration Release
 
       - name: Run .NET 8 tests
-        shell: pwsh
-        timeout-minutes: 15
-        run: |
-          dotnet test `
-            --no-build `
-            --configuration Release `
-            --framework net8.0 `
-            --verbosity normal
+        timeout-minutes: 12
+        run: >
+          dotnet test
+          --no-build
+          --configuration Release
+          --framework net8.0
+          --verbosity normal
 
-      - name: Upload diagnostic artifacts
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: windows-net8-diagnostics
-          path: |
-            TestResults/**
-            **/TestResults/**
-            vstest*.log
-          if-no-files-found: warn
-          retention-days: 7
+      - name: Run .NET 9 tests
+        if: success() || failure()
+        timeout-minutes: 12
+        run: >
+          dotnet test
+          --no-build
+          --configuration Release
+          --framework net9.0
+          --verbosity normal
 
-
-#name: PR Validation
-#
-#on:
-#  pull_request:
-#    branches: [ '**' ]
-#  push:
-#    branches: [ main, master ]
-#  workflow_dispatch:
-#
-#jobs:
-#  test:
-#    name: Test (.NET 8, 9, 10 on ${{ matrix.os }})
-#    runs-on: ${{ matrix.os }}
-#    strategy:
-#      fail-fast: false
-#      matrix:
-#        os: [ubuntu-latest, windows-latest, macos-latest]
-#
-#    steps:
-#      - name: Checkout repository
-#        uses: actions/checkout@v4
-#
-#      - name: Setup .NET SDKs (8.0, 9.0, 10.0)
-#        uses: actions/setup-dotnet@v4
-#        with:
-#          dotnet-version: |
-#            8.0.x
-#            9.0.x
-#            10.0.x
-#
-#      - name: Display .NET Environment Info
-#        run: dotnet --info
-#
-#      - name: Restore dependencies
-#        run: dotnet restore
-#
-#      - name: Build solution
-#        run: dotnet build --no-restore --configuration Release
-#
-#      - name: Run all tests (.NET 8, 9, 10)
-#        run: dotnet test --no-build --configuration Release --verbosity normal
+      - name: Run .NET 10 tests
+        if: success() || failure()
+        timeout-minutes: 12
+        run: >
+          dotnet test
+          --no-build
+          --configuration Release
+          --framework net10.0
+          --verbosity normal
