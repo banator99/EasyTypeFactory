@@ -240,6 +240,14 @@ jobs:
             -p:Version="$VERSION" \
             --output ./nupkg
 
+      - name: Inspect NuGet package frameworks
+        shell: bash
+        run: |
+          for package in ./nupkg/*.nupkg; do
+            echo "Package: $package"
+            unzip -Z1 "$package" | grep '^lib/'
+          done
+
       # ----------------------------------------
       # Upload artifacts
       # ----------------------------------------
