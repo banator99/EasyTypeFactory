@@ -214,8 +214,79 @@ public class GetByNameTests
 
         Assert.Equal("Target", getString.Invoke(instance, ["TargetString"]));
 
-        var exUnsupported = Assert.Throws<TargetInvocationException>(() => getString.Invoke(instance, ["IntField10"]));
-        Assert.IsType<InvalidOperationException>(exUnsupported.InnerException);
+        for (var i = 0; i < 25; i++)
+        {
+            var exUnsupported = Assert.Throws<TargetInvocationException>(() => getString.Invoke(instance, [$"IntField{i}"]));
+            Assert.IsType<InvalidOperationException>(exUnsupported.InnerException);
+        }
+
+        var exMissing = Assert.Throws<TargetInvocationException>(() => getString.Invoke(instance, ["Missing"]));
+        Assert.IsType<KeyNotFoundException>(exMissing.InnerException);
+    }
+
+    [Theory]
+    [InlineData(0, false)]
+    [InlineData(0, true)]
+    [InlineData(1, false)]
+    [InlineData(1, true)]
+    [InlineData(2, false)]
+    [InlineData(2, true)]
+    [InlineData(25, false)]
+    [InlineData(25, true)]
+    public void GetTypeByName_HandlesSupportedUnsupportedAndMissingNames(int unsupportedFieldCount, bool caseInsensitive)
+    {
+        foreach (var hasSupportedField in new[] { false, true })
+        {
+            var builder = EasyTypeBuilder.Create()
+                .WithParameterlessConstructor()
+                .AddGetTypeByName(typeof(string));
+
+            if (caseInsensitive)
+            {
+                builder = builder.CaseInsensitive();
+            }
+
+            if (hasSupportedField)
+            {
+                builder = builder.AddField("TargetString", typeof(string), defaultValue: "Target");
+            }
+
+            for (var i = 0; i < unsupportedFieldCount; i++)
+            {
+                builder = builder.AddField($"IntField{i}", typeof(int));
+            }
+
+            var type = builder.Build();
+            var instance = Activator.CreateInstance(type)!;
+            var getString = type.GetMethod("GetStringByName", [typeof(string)])!;
+
+            if (hasSupportedField)
+            {
+                Assert.Equal("Target", getString.Invoke(instance, ["TargetString"]));
+                if (caseInsensitive)
+                {
+                    Assert.Equal("Target", getString.Invoke(instance, ["targetstring"]));
+                }
+                else
+                {
+                    var exCase = Assert.Throws<TargetInvocationException>(() => getString.Invoke(instance, ["targetstring"]));
+                    Assert.IsType<KeyNotFoundException>(exCase.InnerException);
+                }
+            }
+
+            for (var i = 0; i < unsupportedFieldCount; i++)
+            {
+                var name = caseInsensitive ? $"intfield{i}" : $"IntField{i}";
+                var exUnsupported = Assert.Throws<TargetInvocationException>(() => getString.Invoke(instance, [name]));
+                Assert.IsType<InvalidOperationException>(exUnsupported.InnerException);
+            }
+
+            foreach (var name in new string?[] { "Missing", null })
+            {
+                var exMissing = Assert.Throws<TargetInvocationException>(() => getString.Invoke(instance, [name]));
+                Assert.IsType<KeyNotFoundException>(exMissing.InnerException);
+            }
+        }
     }
 
     [Fact]

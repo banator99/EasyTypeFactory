@@ -99,8 +99,7 @@ internal sealed class GetTypeByNameEmitter : IEmitter
             falseLabel = il.DefineLabel();
             markFalseLabel = true;
             
-            Label trueLabel = default;
-            var markTrueLabel = false;
+            var trueLabel = il.DefineLabel();
 
             for (var i = 0; i < unsupportedFields.Count; i++)
             {
@@ -113,21 +112,10 @@ internal sealed class GetTypeByNameEmitter : IEmitter
                 else
                 {
                     il.Emit(Brtrue, trueLabel);
-
-                    if (markTrueLabel)
-                    {
-                        continue;
-                    }
-
-                    trueLabel = il.DefineLabel();
-                    markTrueLabel = true;
                 }
             }
 
-            if (markTrueLabel)
-            {
-                il.MarkLabel(trueLabel);
-            }
+            il.MarkLabel(trueLabel);
             
             Utils.EmitThrowFieldTypeNotCompatibleException(il, 1, _method.ReturnType);
         }

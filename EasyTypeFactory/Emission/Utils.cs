@@ -96,8 +96,8 @@ internal static class Utils
 
     public static void EmitStringEquals(ILGenerator il, int arg, string value, bool caseInsensitive)
     {
-        il.Emit(Ldarg, arg);
         il.Emit(Ldstr, value);
+        il.Emit(Ldarg, arg);
         
         if (caseInsensitive)
         {
