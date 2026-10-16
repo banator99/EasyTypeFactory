@@ -1,0 +1,41 @@
+name: PR Validation
+
+on:
+  pull_request:
+    branches: [ '**' ]
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Test (.NET 8, 9, 10 on ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDKs (8.0, 9.0, 10.0)
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            9.0.x
+            10.0.x
+
+      - name: Display .NET Environment Info
+        run: dotnet --info
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build solution
+        run: dotnet build --no-restore --configuration Release
+
+      - name: Run all tests (.NET 8, 9, 10)
+        run: dotnet test --no-build --configuration Release --verbosity normal

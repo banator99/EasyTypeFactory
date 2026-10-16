@@ -1,0 +1,85 @@
+name: Deploy to NuGet
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+*'
+      - '[0-9]+.[0-9]+.[0-9]+*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Semantic version to publish (e.g. 1.2.3)'
+        required: true
+        type: string
+      skip_tests:
+        description: 'Skip running tests before publishing'
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  publish:
+    name: Build, Pack and Publish to NuGet
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Resolve Semantic Version
+        id: version_step
+        shell: bash
+        run: |
+          RAW_VERSION="${{ github.event.inputs.version }}"
+          if [ -z "$RAW_VERSION" ]; then
+            RAW_VERSION="${{ github.ref_name }}"
+          fi
+
+          # Strip leading 'v' or 'V' if present to enforce default 1.2.3 semantic format
+          CLEAN_VERSION="${RAW_VERSION#v}"
+          CLEAN_VERSION="${CLEAN_VERSION#V}"
+
+          # Validate version matches standard semantic versioning format (e.g. 1.2.3 or 1.2.3-preview.1)
+          SEMVER_REGEX="^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$"
+          if [[ ! "$CLEAN_VERSION" =~ $SEMVER_REGEX ]]; then
+            echo "::error::Provided version '$CLEAN_VERSION' does not match semantic versioning format (e.g. 1.2.3)."
+            exit 1
+          fi
+
+          echo "Target Version: $CLEAN_VERSION"
+          echo "version=$CLEAN_VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Setup .NET SDKs (8.0, 9.0, 10.0)
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            9.0.x
+            10.0.x
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build solution
+        run: dotnet build --no-restore --configuration Release
+
+      - name: Run all tests
+        if: ${{ github.event.inputs.skip_tests != 'true' }}
+        run: dotnet test --no-build --configuration Release --verbosity normal
+
+      - name: Pack NuGet Packages
+        run: |
+          dotnet pack EasyTypeFactory/EasyTypeFactory.csproj --configuration Release --no-build -p:PackageVersion=${{ steps.version_step.outputs.version }} -p:Version=${{ steps.version_step.outputs.version }} --output ./nupkg
+          dotnet pack EasyTypeFactory.HyperbeeExpressionCompiler/EasyTypeFactory.HyperbeeExpressionCompiler.csproj --configuration Release --no-build -p:PackageVersion=${{ steps.version_step.outputs.version }} -p:Version=${{ steps.version_step.outputs.version }} --output ./nupkg
+
+      - name: Upload Package Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: nuget-packages-${{ steps.version_step.outputs.version }}
+          path: ./nupkg/*.nupkg
+
+      - name: Publish to NuGet.org
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        run: |
+          dotnet nuget push ./nupkg/*.nupkg --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate
