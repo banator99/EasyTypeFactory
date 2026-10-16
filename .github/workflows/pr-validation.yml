@@ -35,7 +35,7 @@ jobs:
       - name: Build solution
         run: dotnet build --no-restore --configuration Release
 
-      - name: Run .NET 8 tests with diagnostics
+      - name: Run .NET 8 tests
         shell: pwsh
         timeout-minutes: 15
         run: |
@@ -43,12 +43,7 @@ jobs:
             --no-build `
             --configuration Release `
             --framework net8.0 `
-            --blame-hang `
-            --blame-hang-timeout 3m `
-            --blame-hang-dump-type full `
-            --logger "console;verbosity=detailed" `
-            --diag vstest.log `
-            --results-directory TestResults
+            --verbosity normal
 
       - name: Upload diagnostic artifacts
         if: always()
