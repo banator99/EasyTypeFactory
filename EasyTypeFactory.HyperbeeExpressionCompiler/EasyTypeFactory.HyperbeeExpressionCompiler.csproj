@@ -11,12 +11,16 @@
         <PackageIcon>icon.png</PackageIcon>
         <PackageProjectUrl>https://github.com/banator99/EasyTypeFactory</PackageProjectUrl>
         <RepositoryUrl>https://github.com/banator99/EasyTypeFactory</RepositoryUrl>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
     </PropertyGroup>
 
     <ItemGroup>
         <None Include="..\icon.png"
               Pack="true"
               PackagePath="icon.png" />
+        <None Include="..\README.md"
+              Pack="true"
+              PackagePath="README.md" />
     </ItemGroup>
     
     <ItemGroup>
