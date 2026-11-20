@@ -1,10 +1,8 @@
-using System;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
 using EasyTypeFactory.Emission;
 using EasyTypeFactory.Model;
-using Xunit;
 
 namespace EasyTypeFactory.UnitTests.Emission;
 

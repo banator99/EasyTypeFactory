@@ -1,8 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Reflection;
-using Xunit;
-
 namespace EasyTypeFactory.IntegrationTests;
 
 public class IndexerTests

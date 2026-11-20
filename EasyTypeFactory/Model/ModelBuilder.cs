@@ -327,7 +327,7 @@ internal sealed class ModelBuilder
             .ToArray();
         
         var createParameterless = _modelDefinition.ParameterlessConstructor || 
-            (_fields.All(field => !field.ReadOnly) && !_modelDefinition.MinimalConstructor && !_modelDefinition.FullConstructor);
+            (_fields.All(field => !field.ReadOnly) && _modelDefinition is { MinimalConstructor: false, FullConstructor: false });
         
         var createMinimal = _modelDefinition.MinimalConstructor && minimal.Length > 0 && minimal.Length < _fields.Count;
         
@@ -354,7 +354,7 @@ internal sealed class ModelBuilder
         {
             _constructors.Add(new ModelConstructor
             {
-                Fields = _fields.ToArray(),
+                Fields = [.. _fields],
                 SetsRequiredMembers = _fields.Any(field => field.Required)
             });
         }
@@ -469,7 +469,7 @@ internal sealed class ModelBuilder
                 Attributes = customMethod.Attributes,
                 ReturnType = customMethod.ReturnType ?? typeof(void),
                 Parameters = customMethod.ParameterTypes,
-                MethodModifiers = customMethod.Modifiers.ToArray(),
+                MethodModifiers = [.. customMethod.Modifiers],
                 Emitter = customMethod.Emitter
             };
             

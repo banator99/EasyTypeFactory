@@ -1,19 +1,16 @@
-using System;
-using System.Collections.Generic;
 using System.Data;
 using System.Reflection;
 using System.Reflection.Emit;
 using EasyTypeFactory.Emission;
 using EasyTypeFactory.Model;
-using Xunit;
 
 namespace EasyTypeFactory.UnitTests.Emission;
 
 public class ModelEmitterTests
 {
-    private static global::EasyTypeFactory.Model.Model CreateEmptyModel(string? name, bool discriminate = true)
+    private static EasyTypeFactory.Model.Model CreateEmptyModel(string? name, bool discriminate = true)
     {
-        return new global::EasyTypeFactory.Model.Model
+        return new EasyTypeFactory.Model.Model
         {
             Name = name,
             DiscriminateName = discriminate,
@@ -96,7 +93,7 @@ public class ModelEmitterTests
         new ModelEmitter(CreateEmptyModel("Reserved"), module).Create();
 
         var emitter = new ModelEmitter(CreateEmptyModel("Reserved<0>", false), module);
-        var exception = Assert.Throws<DuplicateNameException>(() => emitter.Create());
+        var exception = Assert.Throws<DuplicateNameException>(emitter.Create);
 
         Assert.Equal("There is already a type present with the name: Reserved<0>", exception.Message);
     }
@@ -139,7 +136,7 @@ public class ModelEmitterTests
         var opEq = new ModelEqualityOperator();
         var opIneq = new ModelInequalityOperator();
 
-        var model = new global::EasyTypeFactory.Model.Model
+        var model = new EasyTypeFactory.Model.Model
         {
             Name = "Company.Product.MyGeneratedType",
             DiscriminateName = true,
@@ -185,7 +182,7 @@ public class ModelEmitterTests
     public void Create_WithoutDiscriminateName_ThrowsDuplicateNameExceptionWhenRepeated()
     {
         var moduleBuilder = CreateModuleBuilder();
-        var model = new global::EasyTypeFactory.Model.Model
+        var model = new EasyTypeFactory.Model.Model
         {
             Name = "UniqueTypeInModule",
             DiscriminateName = false,
@@ -205,14 +202,14 @@ public class ModelEmitterTests
         Assert.Equal("UniqueTypeInModule", type1.FullName);
 
         var emitter2 = new ModelEmitter(model, moduleBuilder);
-        Assert.Throws<DuplicateNameException>(() => emitter2.Create());
+        Assert.Throws<DuplicateNameException>(emitter2.Create);
     }
 
     [Fact]
     public void Create_WithNullName_UsesDefaultNamespaceAndClassName()
     {
         var moduleBuilder = CreateModuleBuilder();
-        var model = new global::EasyTypeFactory.Model.Model
+        var model = new EasyTypeFactory.Model.Model
         {
             Name = null,
             DiscriminateName = true,

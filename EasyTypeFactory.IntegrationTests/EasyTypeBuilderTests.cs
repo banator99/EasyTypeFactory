@@ -1,6 +1,5 @@
-using System;
+using System.Reflection;
 using System.Reflection.Emit;
-using Xunit;
 
 namespace EasyTypeFactory.IntegrationTests;
 
@@ -86,7 +85,7 @@ public class EasyTypeBuilderTests
     [Fact]
     public void WithModuleBuilder_And_WithoutModuleBuilder_WorksCorrectly()
     {
-        var assemblyName = new System.Reflection.AssemblyName("CustomTestDynamicAssembly");
+        var assemblyName = new AssemblyName("CustomTestDynamicAssembly");
         var dynamicAssembly = AssemblyBuilder.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.Run);
         var customModule = dynamicAssembly.DefineDynamicModule("CustomTestDynamicModule");
 

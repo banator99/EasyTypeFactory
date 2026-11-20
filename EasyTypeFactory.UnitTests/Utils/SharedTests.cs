@@ -1,5 +1,4 @@
 using EasyTypeFactory.Utils;
-using Xunit;
 
 namespace EasyTypeFactory.UnitTests.Utils;
 

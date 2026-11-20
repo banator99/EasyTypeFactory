@@ -3,7 +3,7 @@
     <PropertyGroup>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
-        <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
+        <TargetFrameworks>net11.0;net10.0;net9.0;net8.0</TargetFrameworks>
         <LangVersion>latest</LangVersion>
         <Title>EasyTypeFactory.HyperbeeExpressionCompiler</Title>
         <Authors>banator99</Authors>
@@ -30,6 +30,9 @@
 
     <ItemGroup>
       <PackageReference Include="Hyperbee.Expressions.Compiler" Version="1.5.1" />
+      <PackageReference Include="Microsoft.Build.Tasks.Git" Version="10.0.111" PrivateAssets="all" />
+      <PackageReference Include="Microsoft.SourceLink.Common" Version="10.0.111" PrivateAssets="all" />
+      <PackageReference Include="Microsoft.SourceLink.GitHub" Version="10.0.111" PrivateAssets="all" />
     </ItemGroup>
 
 </Project>

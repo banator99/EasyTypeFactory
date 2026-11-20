@@ -1,11 +1,8 @@
-using System;
-using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Reflection.Emit;
 using EasyTypeFactory.Emission;
 using EasyTypeFactory.Model;
-using Xunit;
 
 namespace EasyTypeFactory.UnitTests.Emission;
 
@@ -139,6 +136,6 @@ public class ConstructorEmitterTests
         };
 
         var emitter = new ConstructorEmitter(typeBuilder, constructor, fields);
-        Assert.Throws<NotSupportedException>(() => emitter.Emit());
+        Assert.Throws<NotSupportedException>(emitter.Emit);
     }
 }

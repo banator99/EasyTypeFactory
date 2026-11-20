@@ -1,8 +1,5 @@
-using System;
 using System.Reflection;
 using System.Reflection.Emit;
-using EasyTypeFactory;
-using Xunit;
 
 namespace EasyTypeFactory.UnitTests;
 
@@ -16,9 +13,9 @@ public class CustomMethodBuilderTests
             .WithAttributes(MethodAttributes.Private | MethodAttributes.Virtual)
             .WithReturnType(typeof(int))
             .WithParameterTypes(typeof(string), typeof(int))
-            .ModifyMethod((mb) => { })
-            .ModifyMethod((mb, ctx) => { })
-            .WithEmitter((il) => il.Emit(OpCodes.Ret))
+            .ModifyMethod(_ => { })
+            .ModifyMethod((_, _) => { })
+            .WithEmitter(il => il.Emit(OpCodes.Ret))
             .WithEmitter((il, ctx) => il.Emit(OpCodes.Ret));
 
         var concreteBuilder = (CustomMethodBuilder)updated;
@@ -36,6 +33,6 @@ public class CustomMethodBuilderTests
     public void ValidateAndGetDefinition_WithoutEmitter_ThrowsArgumentNullException()
     {
         var builder = new CustomMethodBuilder("TestMethod");
-        Assert.Throws<ArgumentNullException>(() => builder.ValidateAndGetDefinition());
+        Assert.Throws<ArgumentNullException>(builder.ValidateAndGetDefinition);
     }
 }

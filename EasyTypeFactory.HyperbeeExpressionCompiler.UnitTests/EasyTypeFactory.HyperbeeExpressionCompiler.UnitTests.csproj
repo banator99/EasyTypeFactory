@@ -5,16 +5,21 @@
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
     <OutputType>exe</OutputType>
-    <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
+    <TargetFrameworks>net11.0;net10.0;net9.0;net8.0</TargetFrameworks>
     <LangVersion>latest</LangVersion>
+    <PackageProjectUrl>https://github.com/banator99/EasyTypeFactory</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/banator99/EasyTypeFactory</RepositoryUrl>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="xunit.v3" Version="4.0.2" />
+    <PackageReference Include="xunit.v3" Version="4.0.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="4.0.1">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <PackageReference Include="Microsoft.Build.Tasks.Git" Version="10.0.111" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.SourceLink.Common" Version="10.0.111" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="10.0.111" PrivateAssets="all" />
   </ItemGroup>
 
   <ItemGroup>

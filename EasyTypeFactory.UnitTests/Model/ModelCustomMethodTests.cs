@@ -1,8 +1,6 @@
-using System;
 using System.Reflection;
 using System.Reflection.Emit;
 using EasyTypeFactory.Model;
-using Xunit;
 
 namespace EasyTypeFactory.UnitTests.Model;
 

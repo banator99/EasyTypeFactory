@@ -1,11 +1,5 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
-using EasyTypeFactory;
-using EasyTypeFactory.HyperbeeExpressionCompiler;
-using Xunit;
 
 namespace EasyTypeFactory.HyperbeeExpressionCompiler.IntegrationTests;
 

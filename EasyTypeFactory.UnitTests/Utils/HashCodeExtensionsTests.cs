@@ -1,7 +1,4 @@
-using System;
-using System.Collections.Generic;
 using EasyTypeFactory.Utils;
-using Xunit;
 
 namespace EasyTypeFactory.UnitTests.Utils;
 

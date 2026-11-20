@@ -1,9 +1,7 @@
-using System;
 using System.Collections.Immutable;
 using System.Reflection;
 using System.Reflection.Emit;
 using EasyTypeFactory.Definition;
-using Xunit;
 
 namespace EasyTypeFactory.UnitTests.Definition;
 

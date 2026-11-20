@@ -1,6 +1,4 @@
-using System;
 using EasyTypeFactory.Model;
-using Xunit;
 
 namespace EasyTypeFactory.UnitTests.Model;
 
