@@ -1,7 +1,5 @@
-using System;
 using System.Reflection;
 using System.Reflection.Emit;
-using Xunit;
 
 namespace EasyTypeFactory.IntegrationTests;
 

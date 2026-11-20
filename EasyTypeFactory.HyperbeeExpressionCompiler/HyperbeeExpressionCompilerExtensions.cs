@@ -6,69 +6,66 @@ namespace EasyTypeFactory.HyperbeeExpressionCompiler;
 
 public static class HyperbeeExpressionCompilerExtensions
 {
-    public static IEasyTypeBuilder AddMethodFromExpression(
-        this IEasyTypeBuilder builder,
-        string name,
-        LambdaExpression expression)
+    extension(IEasyTypeBuilder builder)
     {
-        return builder.AddCustomMethod(name, customMethodBuilder =>
-            customMethodBuilder
-                .TypesFromExpression(expression, isStatic: false)
-                .WithEmitter((_, context) => 
-                    HyperbeeCompiler.CompileToInstanceMethod(expression, context.MethodBuilder)));
-    }
-
-    public static IEasyTypeBuilder AddMethodFromExpression(
-        this IEasyTypeBuilder builder,
-        string name,
-        MethodAttributes attributes,
-        LambdaExpression expression)
-    {
-        var isStatic = (attributes & MethodAttributes.Static) == MethodAttributes.Static;
-
-        return builder.AddCustomMethod(name, customMethodBuilder =>
-            customMethodBuilder
-                .TypesFromExpression(expression, isStatic)
-                .WithAttributes(attributes)
-                .WithEmitter((_, context) =>
-                {
-                    if ((attributes & MethodAttributes.Static) == MethodAttributes.Static)
-                    {
-                        HyperbeeCompiler.CompileToMethod(expression, context.MethodBuilder);
-                    }
-                    else
-                    {
-                        HyperbeeCompiler.CompileToInstanceMethod(expression, context.MethodBuilder);
-                    }
-                }));
-    }
-
-    public static IEasyTypeBuilder AddMethodFromExpression(
-        this IEasyTypeBuilder builder,
-        string name,
-        Func<IEasyTypeMethodBuilder, IEasyTypeMethodBuilder> methodBuilder,
-        LambdaExpression expression)
-    {
-        return builder.AddCustomMethod(name, customMethodBuilder =>
+        public IEasyTypeBuilder AddMethodFromExpression(string name,
+            LambdaExpression expression)
         {
-            var configuredBuilder = customMethodBuilder
-                .TypesFromExpression(expression, isStatic: false)
-                .WithEmitter((_, context) =>
-                {
-                    if ((context.MethodBuilder.Attributes & MethodAttributes.Static) == MethodAttributes.Static)
-                    {
-                        HyperbeeCompiler.CompileToMethod(expression, context.MethodBuilder);
-                    }
-                    else
-                    {
-                        HyperbeeCompiler.CompileToInstanceMethod(expression, context.MethodBuilder);
-                    }
-                });
+            return builder.AddCustomMethod(name, customMethodBuilder =>
+                customMethodBuilder
+                    .TypesFromExpression(expression, isStatic: false)
+                    .WithEmitter((_, context) => 
+                        HyperbeeCompiler.CompileToInstanceMethod(expression, context.MethodBuilder)));
+        }
 
-            return methodBuilder(configuredBuilder);
-        });
+        public IEasyTypeBuilder AddMethodFromExpression(string name,
+            MethodAttributes attributes,
+            LambdaExpression expression)
+        {
+            var isStatic = (attributes & MethodAttributes.Static) == MethodAttributes.Static;
+
+            return builder.AddCustomMethod(name, customMethodBuilder =>
+                customMethodBuilder
+                    .TypesFromExpression(expression, isStatic)
+                    .WithAttributes(attributes)
+                    .WithEmitter((_, context) =>
+                    {
+                        if ((attributes & MethodAttributes.Static) == MethodAttributes.Static)
+                        {
+                            HyperbeeCompiler.CompileToMethod(expression, context.MethodBuilder);
+                        }
+                        else
+                        {
+                            HyperbeeCompiler.CompileToInstanceMethod(expression, context.MethodBuilder);
+                        }
+                    }));
+        }
+
+        public IEasyTypeBuilder AddMethodFromExpression(string name,
+            Func<IEasyTypeMethodBuilder, IEasyTypeMethodBuilder> methodBuilder,
+            LambdaExpression expression)
+        {
+            return builder.AddCustomMethod(name, customMethodBuilder =>
+            {
+                var configuredBuilder = customMethodBuilder
+                    .TypesFromExpression(expression, isStatic: false)
+                    .WithEmitter((_, context) =>
+                    {
+                        if ((context.MethodBuilder.Attributes & MethodAttributes.Static) == MethodAttributes.Static)
+                        {
+                            HyperbeeCompiler.CompileToMethod(expression, context.MethodBuilder);
+                        }
+                        else
+                        {
+                            HyperbeeCompiler.CompileToInstanceMethod(expression, context.MethodBuilder);
+                        }
+                    });
+
+                return methodBuilder(configuredBuilder);
+            });
+        }
     }
-    
+
     private static IEasyTypeMethodBuilder TypesFromExpression(
         this IEasyTypeMethodBuilder builder,
         LambdaExpression expression,

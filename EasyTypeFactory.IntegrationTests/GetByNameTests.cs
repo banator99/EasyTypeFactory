@@ -1,8 +1,4 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
-using Xunit;
 
 namespace EasyTypeFactory.IntegrationTests;
 
@@ -303,11 +299,11 @@ public class GetByNameTests
 
         var instance = Activator.CreateInstance(type)!;
 
-        var getByName = type.GetMethods().Single(m => m.Name == "GetByName" && !m.IsGenericMethod);
+        var getByName = type.GetMethods().Single(m => m is { Name: "GetByName", IsGenericMethod: false });
         Assert.Equal("Admin", getByName.Invoke(instance, ["userprofile"]));
         Assert.Equal("Admin", getByName.Invoke(instance, ["USERPROFILE"]));
 
-        var genericGet = type.GetMethods().Single(m => m.Name == "GetByName" && m.IsGenericMethod)
+        var genericGet = type.GetMethods().Single(m => m is { Name: "GetByName", IsGenericMethod: true })
             .MakeGenericMethod(typeof(string));
         Assert.Equal("Admin", genericGet.Invoke(instance, ["uSeRpRoFiLe"]));
 

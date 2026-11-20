@@ -1,12 +1,8 @@
-using System;
 using System.Collections.Concurrent;
 using System.Data;
-using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
-using System.Threading.Tasks;
-using Xunit;
 
 namespace EasyTypeFactory.IntegrationTests;
 

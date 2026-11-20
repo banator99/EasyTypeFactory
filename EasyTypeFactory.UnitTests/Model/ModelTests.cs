@@ -1,7 +1,3 @@
-using System;
-using EasyTypeFactory.Model;
-using Xunit;
-
 namespace EasyTypeFactory.UnitTests.Model;
 
 public class ModelTests
@@ -9,7 +5,7 @@ public class ModelTests
     [Fact]
     public void Properties_AreCorrectlyInitialized()
     {
-        var model = new global::EasyTypeFactory.Model.Model
+        var model = new EasyTypeFactory.Model.Model
         {
             Name = "MyModel",
             DiscriminateName = true,

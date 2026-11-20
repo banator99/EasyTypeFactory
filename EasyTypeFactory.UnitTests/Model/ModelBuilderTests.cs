@@ -1,11 +1,8 @@
-using System;
 using System.Collections.Immutable;
-using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using EasyTypeFactory.Definition;
 using EasyTypeFactory.Model;
-using Xunit;
 
 namespace EasyTypeFactory.UnitTests.Model;
 

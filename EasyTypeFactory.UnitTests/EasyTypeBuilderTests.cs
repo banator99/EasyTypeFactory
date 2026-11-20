@@ -1,8 +1,5 @@
-using System;
 using System.Reflection.Emit;
-using EasyTypeFactory;
 using EasyTypeFactory.Utils;
-using Xunit;
 
 namespace EasyTypeFactory.UnitTests;
 
@@ -17,7 +14,7 @@ public class EasyTypeBuilderTests
         var def = EasyTypeBuilder.Default;
         Assert.NotNull(def);
 
-        var createdNull = EasyTypeBuilder.Create(null);
+        var createdNull = EasyTypeBuilder.Create();
         Assert.NotNull(createdNull);
 
         var createdName = EasyTypeBuilder.Create("MyType", discriminate: false);

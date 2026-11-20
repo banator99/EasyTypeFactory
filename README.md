@@ -5,6 +5,7 @@
 [![Target: .NET 8.0](https://img.shields.io/badge/.NET-8.0-purple.svg)](https://dotnet.microsoft.com/)
 [![Target: .NET 9.0](https://img.shields.io/badge/.NET-9.0-purple.svg)](https://dotnet.microsoft.com/)
 [![Target: .NET 10.0](https://img.shields.io/badge/.NET-10.0-purple.svg)](https://dotnet.microsoft.com/)
+[![Target: .NET 11.0](https://img.shields.io/badge/.NET-11.0-purple.svg)](https://dotnet.microsoft.com/)
 
 **EasyTypeFactory** is an efficient, high-performance, fluent dynamic type generator for .NET. It streamlines the creation of runtime types, removing the friction and boilerplate of manual `System.Reflection.Emit` and MSIL generation.
 
@@ -62,7 +63,7 @@ EasyTypeFactory delivers practical utility by eliminating this compromise:
 EasyTypeFactory is engineered to maximize performance across modern .NET ecosystems while maintaining practical backward compatibility through standard API contracts.
 
 ### Officially Supported .NET Versions
-We officially support the .NET versions that are actively supported by Microsoft (currently **.NET 8.0**, **.NET 9.0**, and **.NET 10.0**).
+We officially support the .NET versions that are actively supported by Microsoft (currently **.NET 8.0**, **.NET 9.0**, **.NET 10.0**, and **.NET 11.0**).
 
 ### Lifecycle and EOL Policy
 When Microsoft drops official support for a specific .NET version, EasyTypeFactory will continue supporting that version for **at least two more months**. After this period, support will be dropped.
@@ -71,8 +72,8 @@ When Microsoft drops official support for a specific .NET version, EasyTypeFacto
 
 | Project | Target Frameworks | Officially Supported? | Notes |
 | :--- | :--- | :--- | :--- |
-| **`EasyTypeFactory`** | `netstandard2.1`, `net8.0`, `net9.0`, `net10.0` | **.NET 8, 9, 10** | Includes `netstandard2.1` as an API contract. `netstandard2.0` is not supported due to required reflection and runtime APIs. While `netstandard2.1` allows consumption on other compliant runtimes (such as .NET Core 3.0), we do not officially support framework versions other than those actively supported by .NET. |
-| **`EasyTypeFactory.HyperbeeExpressionCompiler`** | `net8.0`, `net9.0`, `net10.0` | **.NET 8, 9, 10** | Does not target `netstandard2.1` because the underlying dependency `Hyperbee.Expressions.Compiler` only targets .NET 8, 9, and 10. |
+| **`EasyTypeFactory`** | `netstandard2.1`, `net8.0`, `net9.0`, `net10.0`, `net11.0` | **.NET 8, 9, 10, 11** | Includes `netstandard2.1` as an API contract. `netstandard2.0` is not supported due to required reflection and runtime APIs. While `netstandard2.1` allows consumption on other compliant runtimes (such as .NET Core 3.0), we do not officially support framework versions other than those actively supported by .NET. |
+| **`EasyTypeFactory.HyperbeeExpressionCompiler`** | `net8.0`, `net9.0`, `net10.0`, `net11.0` | **.NET 8, 9, 10, 11** | Does not target `netstandard2.1` because the underlying dependency `Hyperbee.Expressions.Compiler` only targets .NET 8, 9, 10, and 11. |
 
 ---
 
